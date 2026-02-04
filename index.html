@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Fruit Recognition</title>
 
-<!-- TensorFlow & Teachable Machine -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
@@ -67,23 +66,22 @@ img {
 }
 
 .bar-label {
-    font-size: 13px;
-    margin-bottom: 3px;
+    font-size: 14px;
+    margin-bottom: 4px;
 }
 
 .bar-bg {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.25);
     border-radius: 6px;
     overflow: hidden;
-    height: 14px;
-    margin-bottom: 8px;
+    height: 16px;
 }
 
 .bar-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #00ff99, #00ccff);
-    transition: width 0.5s ease;
+    background: linear-gradient(90deg, #1e90ff, #00bfff);
+    transition: width 0.6s ease;
 }
 </style>
 </head>
@@ -99,7 +97,13 @@ img {
     <img id="preview">
 
     <div id="result"></div>
-    <div id="bars" class="bar-container"></div>
+
+    <div class="bar-container">
+        <div id="barLabel" class="bar-label"></div>
+        <div class="bar-bg">
+            <div id="barFill" class="bar-fill"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -129,12 +133,12 @@ async function predictImage(event) {
     img.onload = async () => {
         const predictions = await model.predict(img);
 
-        // Find best prediction
         const best = predictions.reduce((a, b) =>
             a.probability > b.probability ? a : b
         );
 
         const confidence = best.probability;
+        const percent = (confidence * 100).toFixed(2);
 
         const minSpeed = 3;
         const maxSpeed = 15;
@@ -146,29 +150,12 @@ async function predictImage(event) {
 
         document.getElementById("result").innerHTML =
             `<b>${best.className}</b><br>
-             Confidence: ${(confidence * 100).toFixed(2)}%`;
+             Confidence: ${percent}%`;
 
-        const barsDiv = document.getElementById("bars");
-        barsDiv.innerHTML = "";
+        document.getElementById("barLabel").textContent =
+            `${best.className} — ${percent}%`;
 
-        predictions.forEach(p => {
-            const percent = (p.probability * 100).toFixed(1);
-
-            const label = document.createElement("div");
-            label.className = "bar-label";
-            label.textContent = `${p.className} — ${percent}%`;
-
-            const bg = document.createElement("div");
-            bg.className = "bar-bg";
-
-            const fill = document.createElement("div");
-            fill.className = "bar-fill";
-            fill.style.width = percent + "%";
-
-            bg.appendChild(fill);
-            barsDiv.appendChild(label);
-            barsDiv.appendChild(bg);
-        });
+        document.getElementById("barFill").style.width = percent + "%";
     };
 }
 </script>
