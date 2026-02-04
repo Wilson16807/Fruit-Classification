@@ -2,40 +2,88 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Image Recognition (Upload)</title>
+<title>Fruit Recognition</title>
 
 <!-- TensorFlow & Teachable Machine -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
 <style>
+:root {
+    --bg-speed: 12s;
+}
+
 body {
     font-family: Arial, sans-serif;
-    background: #2FACDE;
-    background: linear-gradient(90deg,rgba(47, 172, 222, 1) 28%, rgba(87, 199, 133, 1) 65%, rgba(237, 221, 83, 1) 100%);
-    padding: 300px;
-    text-align: center;
+    min-height: 100vh;
+    margin: 0;
+
+    background: linear-gradient(
+        270deg,
+        #2FACDE,
+        #57C785,
+        #EDDD53,
+        #ff7eb3,
+        #65c7f7
+    );
+    background-size: 600% 600%;
+    animation: gradientMove var(--bg-speed) ease infinite;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .box {
-    background: green;
-    padding: 15px;
-    max-width: 360px;
-    margin: auto;
-    border-radius: 8px;
+    background: rgba(0, 128, 0, 0.9);
+    padding: 16px;
+    width: 360px;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
 }
+
 img {
     width: 100%;
     margin-top: 10px;
     border-radius: 6px;
 }
+
 #result {
     margin-top: 10px;
     font-size: 16px;
 }
-.note {
-    font-size: 12px;
-    color: #666;
-    margin-top: 10px;
+
+.bar-container {
+    margin-top: 12px;
+    text-align: left;
+}
+
+.bar-label {
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.bar-bg {
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    height: 14px;
+    margin-bottom: 8px;
+}
+
+.bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00ff99, #00ccff);
+    transition: width 0.5s ease;
 }
 </style>
 </head>
@@ -46,31 +94,25 @@ img {
     <h3>Fruit Recognition</h3>
     <h4>🥭🍉🍎🍊🍌🍒🥑🍍</h4>
     <h5>Wilson XII-4/30</h5>
+
     <input type="file" accept="image/*" onchange="predictImage(event)">
     <img id="preview">
 
     <div id="result"></div>
-
-    
+    <div id="bars" class="bar-container"></div>
 </div>
 
 <script>
 const MODEL_URL = "https://teachablemachine.withgoogle.com/models/za9_7BXNE/";
-
 let model;
 
 // Load model
 async function loadModel() {
-    try {
-        model = await tmImage.load(
-            MODEL_URL + "model.json",
-            MODEL_URL + "metadata.json"
-        );
-        console.log("Model loaded");
-    } catch (e) {
-        alert("Gagal load model");
-        console.error(e);
-    }
+    model = await tmImage.load(
+        MODEL_URL + "model.json",
+        MODEL_URL + "metadata.json"
+    );
+    console.log("Model loaded");
 }
 loadModel();
 
@@ -87,13 +129,46 @@ async function predictImage(event) {
     img.onload = async () => {
         const predictions = await model.predict(img);
 
+        // Find best prediction
         const best = predictions.reduce((a, b) =>
             a.probability > b.probability ? a : b
         );
 
+        const confidence = best.probability;
+
+        const minSpeed = 3;
+        const maxSpeed = 15;
+        const speed = maxSpeed - (confidence * (maxSpeed - minSpeed));
+        document.documentElement.style.setProperty(
+            "--bg-speed",
+            speed.toFixed(2) + "s"
+        );
+
         document.getElementById("result").innerHTML =
             `<b>${best.className}</b><br>
-             ${(best.probability * 100).toFixed(2)}%`;
+             Confidence: ${(confidence * 100).toFixed(2)}%`;
+
+        const barsDiv = document.getElementById("bars");
+        barsDiv.innerHTML = "";
+
+        predictions.forEach(p => {
+            const percent = (p.probability * 100).toFixed(1);
+
+            const label = document.createElement("div");
+            label.className = "bar-label";
+            label.textContent = `${p.className} — ${percent}%`;
+
+            const bg = document.createElement("div");
+            bg.className = "bar-bg";
+
+            const fill = document.createElement("div");
+            fill.className = "bar-fill";
+            fill.style.width = percent + "%";
+
+            bg.appendChild(fill);
+            barsDiv.appendChild(label);
+            barsDiv.appendChild(bg);
+        });
     };
 }
 </script>
